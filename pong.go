@@ -40,6 +40,18 @@ func (b *ball) draw(pixels []byte) {
 	}
 }
 
+func (b *ball) update() {
+	b.x += b.xv
+	b.y += b.yv
+
+	if b.y < 0 {
+		b.yv = -b.yv
+	} else if int(b.y) > winHeight {
+		b.yv = -b.yv
+	}
+
+}
+
 func (p *paddle) draw(pixels []byte) {
 	startX := int(p.x) - p.w/2
 	startY := int(p.y) - p.h/2
@@ -51,6 +63,16 @@ func (p *paddle) draw(pixels []byte) {
 	}
 }
 
+func (p *paddle) update(keyState []uint8) {
+	if keyState[sdl.SCANCODE_UP] != 0 {
+		p.y--
+	}
+	if keyState[sdl.SCANCODE_DOWN] != 0 {
+		p.y++
+	}
+
+}
+
 func setPixel(x, y int, c color, pixels []byte) {
 	index := (y*winWidth + x) * 4
 
@@ -60,6 +82,12 @@ func setPixel(x, y int, c color, pixels []byte) {
 		pixels[index+2] = c.b
 	}
 
+}
+
+func clear(pixels []byte) {
+	for i := range pixels {
+		pixels[i] = 0
+	}
 }
 
 func main() {
@@ -95,18 +123,10 @@ func main() {
 
 	pixels := make([]byte, winWidth*winHeight*4)
 
-	for y := 0; y < winHeight; y++ {
-		for x := 0; x < winWidth; x++ {
-			setPixel(x, y, color{byte(0), byte(0), 0}, pixels)
-		}
-	}
-
-	tex.Update(nil, pixels, winWidth*4)
-	renderer.Copy(tex, nil, nil)
-	renderer.Present()
-
 	p1 := paddle{pos{100, 100}, 20, 100, color{255, 255, 255}}
 	ball := ball{pos{300, 300}, 20, 0, 0, color{255, 255, 255}}
+
+	keyState := sdl.GetKeyboardState()
 
 	// Game loop
 	for {
@@ -117,7 +137,11 @@ func main() {
 			}
 		}
 		p1.draw(pixels)
+		p1.update(keyState)
 		ball.draw(pixels)
+		tex.Update(nil, pixels, winWidth*4)
+		renderer.Copy(tex, nil, nil)
+		renderer.Present()
 		sdl.Delay(16)
 	}
 

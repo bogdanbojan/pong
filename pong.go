@@ -44,12 +44,14 @@ func (b *ball) update() {
 	b.x += b.xv
 	b.y += b.yv
 
-	if b.y < 0 {
-		b.yv = -b.yv
-	} else if int(b.y) > winHeight {
+	if int(b.y)-b.radius < 0 || int(b.y)+b.radius > winHeight {
 		b.yv = -b.yv
 	}
 
+	if b.x < 0 || int(b.x) > winWidth {
+		b.x = 300
+		b.y = 300
+	}
 }
 
 func (p *paddle) draw(pixels []byte) {
@@ -61,6 +63,10 @@ func (p *paddle) draw(pixels []byte) {
 			setPixel(startX+x, startY+y, p.color, pixels)
 		}
 	}
+}
+
+func (p *paddle) aiUpdate(b *ball) {
+	p.y = b.y
 }
 
 func (p *paddle) update(keyState []uint8) {
@@ -84,6 +90,7 @@ func setPixel(x, y int, c color, pixels []byte) {
 
 }
 
+// Can make it so that it only clears where obj is drawn.
 func clear(pixels []byte) {
 	for i := range pixels {
 		pixels[i] = 0
@@ -124,7 +131,8 @@ func main() {
 	pixels := make([]byte, winWidth*winHeight*4)
 
 	p1 := paddle{pos{100, 100}, 20, 100, color{255, 255, 255}}
-	ball := ball{pos{300, 300}, 20, 0, 0, color{255, 255, 255}}
+	p2 := paddle{pos{700, 100}, 20, 100, color{255, 255, 255}}
+	ball := ball{pos{300, 300}, 20, 2, 2, color{255, 255, 255}}
 
 	keyState := sdl.GetKeyboardState()
 
@@ -136,9 +144,16 @@ func main() {
 				return
 			}
 		}
-		p1.draw(pixels)
+		clear(pixels)
+
 		p1.update(keyState)
+		p2.aiUpdate(&ball)
+		ball.update()
+
+		p1.draw(pixels)
+		p2.draw(pixels)
 		ball.draw(pixels)
+
 		tex.Update(nil, pixels, winWidth*4)
 		renderer.Copy(tex, nil, nil)
 		renderer.Present()

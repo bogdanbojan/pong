@@ -40,7 +40,7 @@ func (b *ball) draw(pixels []byte) {
 	}
 }
 
-func (b *ball) update() {
+func (b *ball) update(leftp *paddle, rightp *paddle) {
 	b.x += b.xv
 	b.y += b.yv
 
@@ -52,6 +52,20 @@ func (b *ball) update() {
 		b.x = 300
 		b.y = 300
 	}
+
+	if int(b.x) < int(leftp.x)+leftp.w/2 {
+		if int(b.y) > int(leftp.y)-leftp.h/2 && int(b.y) < int(leftp.y)+leftp.h/2 {
+			b.xv -= b.xv
+
+		}
+	}
+	if int(b.x) > int(rightp.x)-rightp.w/2 {
+		if int(b.y) > int(rightp.y)-rightp.h/2 && int(b.y) < int(rightp.y)+rightp.h/2 {
+			b.xv -= b.xv
+
+		}
+	}
+
 }
 
 func (p *paddle) draw(pixels []byte) {
@@ -130,8 +144,8 @@ func main() {
 
 	pixels := make([]byte, winWidth*winHeight*4)
 
-	p1 := paddle{pos{100, 100}, 20, 100, color{255, 255, 255}}
-	p2 := paddle{pos{700, 100}, 20, 100, color{255, 255, 255}}
+	player1 := paddle{pos{50, 100}, 20, 100, color{255, 255, 255}}
+	player2 := paddle{pos{float32(winWidth) - 50, 100}, 20, 100, color{255, 255, 255}}
 	ball := ball{pos{300, 300}, 20, 2, 2, color{255, 255, 255}}
 
 	keyState := sdl.GetKeyboardState()
@@ -146,12 +160,12 @@ func main() {
 		}
 		clear(pixels)
 
-		p1.update(keyState)
-		p2.aiUpdate(&ball)
-		ball.update()
+		player1.update(keyState)
+		player2.aiUpdate(&ball)
+		ball.update(&player1, &player2)
 
-		p1.draw(pixels)
-		p2.draw(pixels)
+		player1.draw(pixels)
+		player2.draw(pixels)
 		ball.draw(pixels)
 
 		tex.Update(nil, pixels, winWidth*4)

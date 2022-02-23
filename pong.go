@@ -17,24 +17,17 @@ type pos struct {
 
 type ball struct {
 	pos
-	radius int
+	radius float32
 	xv     float32
 	yv     float32
 	color  color
-}
-
-type paddle struct {
-	pos
-	w     int
-	h     int
-	color color
 }
 
 func (b *ball) draw(pixels []byte) {
 	for y := -b.radius; y < b.radius; y++ {
 		for x := -b.radius; x < b.radius; x++ {
 			if x*x+y*y < b.radius*b.radius {
-				setPixel(int(b.x)+x, int(b.y)+y, b.color, pixels)
+				setPixel(int(b.x+x), int(b.y+y), b.color, pixels)
 			}
 		}
 	}
@@ -44,7 +37,7 @@ func (b *ball) update(leftp *paddle, rightp *paddle) {
 	b.x += b.xv
 	b.y += b.yv
 
-	if int(b.y)-b.radius < 0 || int(b.y)+b.radius > winHeight {
+	if b.y-b.radius < 0 || int(b.y+b.radius) > winHeight {
 		b.yv = -b.yv
 	}
 
@@ -53,14 +46,14 @@ func (b *ball) update(leftp *paddle, rightp *paddle) {
 		b.y = 300
 	}
 
-	if int(b.x) < int(leftp.x)+leftp.w/2 {
-		if int(b.y) > int(leftp.y)-leftp.h/2 && int(b.y) < int(leftp.y)+leftp.h/2 {
+	if b.x < leftp.x+leftp.w/2 {
+		if b.y > leftp.y-leftp.h/2 && b.y < leftp.y+leftp.h/2 {
 			b.xv = -b.xv
 
 		}
 	}
-	if int(b.x) > int(rightp.x)-rightp.w/2 {
-		if int(b.y) > int(rightp.y)-rightp.h/2 && int(b.y) < int(rightp.y)+rightp.h/2 {
+	if b.x > rightp.x-rightp.w/2 {
+		if b.y > rightp.y-rightp.h/2 && b.y < rightp.y+rightp.h/2 {
 			b.xv = -b.xv
 
 		}
@@ -68,12 +61,19 @@ func (b *ball) update(leftp *paddle, rightp *paddle) {
 
 }
 
-func (p *paddle) draw(pixels []byte) {
-	startX := int(p.x) - p.w/2
-	startY := int(p.y) - p.h/2
+type paddle struct {
+	pos
+	w     float32
+	h     float32
+	color color
+}
 
-	for y := 0; y < p.h; y++ {
-		for x := 0; x < p.w; x++ {
+func (p *paddle) draw(pixels []byte) {
+	startX := int(p.x - p.w/2)
+	startY := int(p.y - p.h/2)
+
+	for y := 0; y < int(p.h); y++ {
+		for x := 0; x < int(p.w); x++ {
 			setPixel(startX+x, startY+y, p.color, pixels)
 		}
 	}

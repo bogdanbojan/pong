@@ -55,13 +55,13 @@ func (b *ball) update(leftp *paddle, rightp *paddle) {
 
 	if int(b.x) < int(leftp.x)+leftp.w/2 {
 		if int(b.y) > int(leftp.y)-leftp.h/2 && int(b.y) < int(leftp.y)+leftp.h/2 {
-			b.xv -= b.xv
+			b.xv = -b.xv
 
 		}
 	}
 	if int(b.x) > int(rightp.x)-rightp.w/2 {
 		if int(b.y) > int(rightp.y)-rightp.h/2 && int(b.y) < int(rightp.y)+rightp.h/2 {
-			b.xv -= b.xv
+			b.xv = -b.xv
 
 		}
 	}
@@ -85,10 +85,10 @@ func (p *paddle) aiUpdate(b *ball) {
 
 func (p *paddle) update(keyState []uint8) {
 	if keyState[sdl.SCANCODE_UP] != 0 {
-		p.y--
+		p.y -= 5
 	}
 	if keyState[sdl.SCANCODE_DOWN] != 0 {
-		p.y++
+		p.y += 5
 	}
 
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/veandco/go-sdl2/sdl"
+	"time"
 )
 
 const winWidth, winHeight int = 800, 600
@@ -33,17 +34,20 @@ func (b *ball) draw(pixels []byte) {
 	}
 }
 
-func (b *ball) update(leftp *paddle, rightp *paddle) {
-	b.x += b.xv
-	b.y += b.yv
+func getCenter() pos {
+	return pos{float32(winWidth) / 2, float32(winHeight) / 2}
+}
+
+func (b *ball) update(leftp *paddle, rightp *paddle, elapsedTime float32) {
+	b.x += b.xv * elapsedTime
+	b.y += b.yv * elapsedTime
 
 	if b.y-b.radius < 0 || int(b.y+b.radius) > winHeight {
 		b.yv = -b.yv
 	}
 
 	if b.x < 0 || int(b.x) > winWidth {
-		b.x = 300
-		b.y = 300
+		b.pos = getCenter()
 	}
 
 	if b.x < leftp.x+leftp.w/2 {
@@ -65,6 +69,7 @@ type paddle struct {
 	pos
 	w     float32
 	h     float32
+	speed float32
 	color color
 }
 
@@ -79,16 +84,16 @@ func (p *paddle) draw(pixels []byte) {
 	}
 }
 
-func (p *paddle) aiUpdate(b *ball) {
+func (p *paddle) aiUpdate(b *ball, elapsedTime float32) {
 	p.y = b.y
 }
 
-func (p *paddle) update(keyState []uint8) {
+func (p *paddle) update(keyState []uint8, elapsedTime float32) {
 	if keyState[sdl.SCANCODE_UP] != 0 {
-		p.y -= 5
+		p.y -= p.speed * elapsedTime
 	}
 	if keyState[sdl.SCANCODE_DOWN] != 0 {
-		p.y += 5
+		p.y += p.speed * elapsedTime
 	}
 
 }
@@ -144,14 +149,19 @@ func main() {
 
 	pixels := make([]byte, winWidth*winHeight*4)
 
-	player1 := paddle{pos{50, 100}, 20, 100, color{255, 255, 255}}
-	player2 := paddle{pos{float32(winWidth) - 50, 100}, 20, 100, color{255, 255, 255}}
-	ball := ball{pos{300, 300}, 20, 2, 2, color{255, 255, 255}}
+	player1 := paddle{pos{50, 100}, 20, 100, 300, color{255, 255, 255}}
+	player2 := paddle{pos{float32(winWidth) - 50, 100}, 20, 100, 300, color{255, 255, 255}}
+	ball := ball{pos{300, 300}, 20, 400, 400, color{255, 255, 255}}
 
 	keyState := sdl.GetKeyboardState()
 
+	var frameStart time.Time
+	var elapsedTime float32
+
 	// Game loop
 	for {
+		frameStart = time.Now()
+
 		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
 			switch event.(type) {
 			case *sdl.QuitEvent:
@@ -160,9 +170,9 @@ func main() {
 		}
 		clear(pixels)
 
-		player1.update(keyState)
-		player2.aiUpdate(&ball)
-		ball.update(&player1, &player2)
+		player1.update(keyState, elapsedTime)
+		player2.aiUpdate(&ball, elapsedTime)
+		ball.update(&player1, &player2, elapsedTime)
 
 		player1.draw(pixels)
 		player2.draw(pixels)
@@ -171,7 +181,10 @@ func main() {
 		tex.Update(nil, pixels, winWidth*4)
 		renderer.Copy(tex, nil, nil)
 		renderer.Present()
-		sdl.Delay(16)
+
+		//sdl.Delay(16)
+		elapsedTime = float32(time.Since(frameStart).Seconds())
+		fmt.Println(elapsedTime)
 	}
 
 }

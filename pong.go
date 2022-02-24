@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/veandco/go-sdl2/sdl"
+	"math"
 	"time"
 )
 
@@ -14,6 +15,8 @@ const (
 	start gameState = iota
 	play
 )
+
+var state = start
 
 var nums = [][]byte{
 	{1, 1, 1,
@@ -107,20 +110,24 @@ func (b *ball) update(leftp *paddle, rightp *paddle, elapsedTime float32) {
 	if b.x < 0 {
 		rightp.score++
 		b.pos = getCenter()
+		state = start
 	} else if int(b.x) > winWidth {
 		leftp.score++
 		b.pos = getCenter()
+		state = start
 	}
 
-	if b.x < leftp.x+leftp.w/2 {
+	if b.x-b.radius < leftp.x+leftp.w/2 {
 		if b.y > leftp.y-leftp.h/2 && b.y < leftp.y+leftp.h/2 {
 			b.xv = -b.xv
+			b.x = leftp.x + leftp.w/2.0 + b.radius
 
 		}
 	}
-	if b.x > rightp.x-rightp.w/2 {
+	if b.x+b.radius > rightp.x-rightp.w/2 {
 		if b.y > rightp.y-rightp.h/2 && b.y < rightp.y+rightp.h/2 {
 			b.xv = -b.xv
+			b.x = rightp.x - rightp.w/2.0 - b.radius
 
 		}
 	}
@@ -158,12 +165,17 @@ func (p *paddle) aiUpdate(b *ball, elapsedTime float32) {
 	p.y = b.y
 }
 
-func (p *paddle) update(keyState []uint8, elapsedTime float32) {
+func (p *paddle) update(keyState []uint8, controllerAxis int16, elapsedTime float32) {
 	if keyState[sdl.SCANCODE_UP] != 0 {
 		p.y -= p.speed * elapsedTime
 	}
 	if keyState[sdl.SCANCODE_DOWN] != 0 {
 		p.y += p.speed * elapsedTime
+	}
+
+	if math.Abs(float64(controllerAxis)) > 1500 {
+		pct := float32(controllerAxis) / 32767.0
+		p.y += p.speed * pct * elapsedTime
 	}
 
 }
@@ -217,6 +229,12 @@ func main() {
 	}
 	defer tex.Destroy()
 
+	var controllerHandlers []*sdl.GameController
+	for i := 0; i < sdl.NumJoysticks(); i++ {
+		controllerHandlers = append(controllerHandlers, sdl.GameControllerOpen(i))
+		defer controllerHandlers[i].Close()
+	}
+
 	pixels := make([]byte, winWidth*winHeight*4)
 
 	player1 := paddle{pos{50, 100}, 20, 100, 300, 0, color{255, 255, 255}}
@@ -227,6 +245,7 @@ func main() {
 
 	var frameStart time.Time
 	var elapsedTime float32
+	var controllerAxis int16
 
 	// Game loop
 	for {
@@ -238,11 +257,28 @@ func main() {
 				return
 			}
 		}
-		clear(pixels)
-		player1.update(keyState, elapsedTime)
-		player2.aiUpdate(&ball, elapsedTime)
-		ball.update(&player1, &player2, elapsedTime)
 
+		for _, c := range controllerHandlers {
+			if c != nil {
+				controllerAxis = c.Axis(sdl.CONTROLLER_AXIS_LEFTY)
+			}
+		}
+
+		if state == play {
+			player1.update(keyState, controllerAxis, elapsedTime)
+			player2.aiUpdate(&ball, elapsedTime)
+			ball.update(&player1, &player2, elapsedTime)
+		} else if state == start {
+			if keyState[sdl.SCANCODE_SPACE] != 0 {
+				if player1.score == 3 || player2.score == 3 {
+					player1.score = 0
+					player2.score = 0
+				}
+				state = play
+			}
+		}
+
+		clear(pixels)
 		player1.draw(pixels)
 		player2.draw(pixels)
 		ball.draw(pixels)
